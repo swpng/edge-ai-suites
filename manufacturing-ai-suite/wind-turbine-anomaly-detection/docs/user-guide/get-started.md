@@ -256,7 +256,7 @@ Please refer [link](how-to-enable-system-metrics.md).
 
 ### Deploying the helm charts on Edge orchestrator
 
-Please refer [link](how-to-deploy-with-edge-orchestrator.md). Please note if the any of the default configuration is changed in `<path-to-edge-ai-suites-repo>/manufacturing-ai-suite/wind-turbine-anomaly-detection/time_series_analytics_microservice/config.json`, please ensure to re-upload the different set of helm charts to the container registry, point to that in the deployment package and re-deploy.
+Please refer [link](how-to-deploy-with-edge-orchestrator.md). Please note if any of the default configuration is changed in `<path-to-edge-ai-suites-repo>/manufacturing-ai-suite/wind-turbine-anomaly-detection/time_series_analytics_microservice/config.json`, please ensure to re-upload the different set of helm charts to the container registry, point to that in the deployment package and re-deploy.
 
 ## Supporting Resources
 
