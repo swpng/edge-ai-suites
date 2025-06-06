@@ -5,10 +5,12 @@ This guide provides instructions for setting up alerts in **Time Series Analytic
 ## Publishing OPC-UA Alerts
 
 To enable OPC-UA alerts in `Time Series Analytics Microservice`, please follow below steps.
-The way to verify if the OPC-UA alerts are getting published would be check the `Time Series Analytics Microservice` logs OR
+The way to verify if the OPC-UA alerts are getting published would be to check the `Time Series Analytics Microservice` logs OR
 have any third-party OPC-UA client to connect to OPC-UA server to verify this.
 
-1. Update the `config.json` file:
+### Configuration
+
+Update the `<path-to-edge-ai-suites-repo>/manufacturing-ai-suite/wind-turbine-anomaly-detection/time_series_analytics_microservice/config.json` file:
    ```json
    "alerts": {
        "opcua": {
@@ -19,6 +21,10 @@ have any third-party OPC-UA client to connect to OPC-UA server to verify this.
    }
    ```
 ### Configuring OPC-UA Alert in TICK Script
+
+The details below shows the snippet on how to add the OPC-UA alert if not 
+already added, please replace this in place of MQTT alert section at
+`<path-to-edge-ai-suites-repo>/manufacturing-ai-suite/wind-turbine-anomaly-detection/time_series_analytics_microservice/tick_scripts/windturbine_anomaly_detector.tick`.
 
 ```bash
 data0
@@ -35,9 +41,10 @@ data0
 
 ## Publishing MQTT Alerts
 
-### MQTT Configuration in Time Series Analytics Microservice
+### Configuration
 
-To enable MQTT alerts, add the following configuration to `kapacitor_devmode.conf`:
+To enable MQTT alerts, add the following configuration to `kapacitor_devmode.conf`, by default it is added to this conf file in Time Series Analytics
+Microservice.
 
 ```bash
 [[mqtt]]
@@ -53,6 +60,9 @@ To enable MQTT alerts, add the following configuration to `kapacitor_devmode.con
 
 ### Configuring MQTT Alert in TICK Script
 
+The details below shows the snippet on how to add the MQTT if not 
+already added. By default, the `<path-to-edge-ai-suites-repo>/manufacturing-ai-suite/wind-turbine-anomaly-detection/time_series_analytics_microservice/tick_scripts/windturbine_anomaly_detector.tick` TICK Script has this configured by default.
+
 ```bash
 @windturbine_anomaly_detector()
 |alert()
@@ -67,7 +77,7 @@ To enable MQTT alerts, add the following configuration to `kapacitor_devmode.con
 
 ### Subscribing to MQTT Alerts
 
-To subscribe to MQTT alerts:
+To subscribe to the published MQTT alerts:
 
 #### Docker compose deployment
 
@@ -87,7 +97,7 @@ docker exec -ti ia-mqtt-broker mosquitto_sub -h localhost -v -t alerts/wind_turb
 
 To subscribe to MQTT topics in a Helm deployment, execute the following command:
 
-Identify the the MQTT broker pod name by running:
+Identify the MQTT broker pod name by running:
 ```sh
 kubectl get pods -n apps | grep mqtt-broker
 ```
@@ -102,10 +112,6 @@ To subscribe to the `alerts/wind_turbine` topic, use the following command:
 ```sh
 kubectl exec -it -n apps <mqtt_broker_pod_name> -- mosquitto_sub -h localhost -v -t alerts/wind_turbine -p 1883
 ```
-
-> **Note:**
-> If you are deploying with the Edge Orchestrator, make sure to export the `KUBECONFIG` environment variable.
-
 
 ## Supporting Resources
 
