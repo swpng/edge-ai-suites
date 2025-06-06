@@ -9,49 +9,49 @@ This guide provides instructions for setting up custom UDF deployment package (U
 - **`UDF Deployment package`**:
 
   1. **`udfs/`**:
-       - Contains python scripts for UDFs.
-       - If additional python packages are required, list them in `requirements.txt` using pinned versions.
+     - Contains python scripts for UDFs.
+     - If additional python packages are required, list them in `requirements.txt` using pinned versions.
 
   2. **`tick_scripts/`**:
-       - Contains TICKscripts for data processing, analytics, and alerts.
-       - Mode detail on writing TICKscript is available at <https://docs.influxdata.com/kapacitor/v1/reference/tick/introduction/>
+     - Contains TICKscripts for data processing, analytics, and alerts.
+     - Mode detail on writing TICKscript is available at <https://docs.influxdata.com/kapacitor/v1/reference/tick/introduction/>
    
-       - Example TICKscript:
+     - Example TICKscript:
          
-         ```bash
-         dbrp "datain"."autogen"
-   
-         var data0 = stream
-             |from()
-                 .database('datain')
-                 .retentionPolicy('autogen')
-                 .measurement('opcua')
-             @windturbine_anomaly_detector()
-             |alert()
-                 .crit(lambda: "anomaly_status" > 0)
-                 .message('Anomaly detected: Wind Speed: {{ index .Fields "wind_speed" }}, Grid Active Power: {{ index .Fields "grid_active_power" }}, Anomaly Status: {{ index .Fields "anomaly_status" }}')
-                 .mqtt('my_mqtt_broker')
-                 .topic('alerts/wind_turbine')
-                 .qos(1)
-             |log()
-                 .level('INFO')
-             |influxDBOut()
-                 .buffer(0)
-                 .database('datain')
-                 .measurement('opcua')
-                 .retentionPolicy('autogen')
-         ```
+      ```bash
+      dbrp "datain"."autogen"
+
+      var data0 = stream
+          |from()
+              .database('datain')
+              .retentionPolicy('autogen')
+              .measurement('opcua')
+          @windturbine_anomaly_detector()
+          |alert()
+              .crit(lambda: "anomaly_status" > 0)
+              .message('Anomaly detected: Wind Speed: {{ index .Fields "wind_speed" }}, Grid Active Power: {{ index .Fields "grid_active_power" }}, Anomaly Status: {{ index .Fields "anomaly_status" }}')
+              .mqtt('my_mqtt_broker')
+              .topic('alerts/wind_turbine')
+              .qos(1)
+          |log()
+              .level('INFO')
+          |influxDBOut()
+              .buffer(0)
+              .database('datain')
+              .measurement('opcua')
+              .retentionPolicy('autogen')
+      ```
        - Key sections:
          - **Input**: Fetch data from Telegraf (stream).
          - **Processing**: Apply UDFs for analytics.
          - **Alerts**: Configuration for publishing alerts (e.g., MQTT). Refer [link](#Publishing-mqtt-alerts)
          - **Logging**: Set log levels (`INFO`, `DEBUG`, `WARN`, `ERROR`).
          - **Output**: Publish processed data.
-   
-       For more details, refer to the [Kapacitor TICK Script Documentation](https://docs.influxdata.com/kapacitor/v1/reference/tick/introduction/).
+      
+          For more details, refer to the [Kapacitor TICK Script Documentation](https://docs.influxdata.com/kapacitor/v1/reference/tick/introduction/).
 
   3. **`models/`**:
-       - Contains model files (e.g., `.pkl`) used by UDF python scripts.
+     - Contains model files (e.g., `.pkl`) used by UDF python scripts.
 
 
 ## With Volume Mounts
