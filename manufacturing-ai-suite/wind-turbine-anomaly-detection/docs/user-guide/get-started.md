@@ -127,7 +127,8 @@ The `mqtt` section specifies the MQTT broker details for sending alerts.
 
 ```bash
 cd <path-to-edge-ai-suites-repo>
-git clone https://github.com/open-edge-platform/edge-ai-suites
+git clone https://github.com/open-edge-platform/edge-ai-suites.git
+cd edge-ai-suites/manufacturing-ai-suite/wind-turbine-anomaly-detection
 ```
 
 ## Build Docker Images
