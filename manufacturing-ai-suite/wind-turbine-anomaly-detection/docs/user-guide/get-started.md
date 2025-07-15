@@ -3,12 +3,10 @@
 -   **Time to Complete:** 30 minutes
 -   **Programming Language:**  Python 3
 
-## Prerequisites
 
-- [System Requirements](system-requirements.md)
+## Configure Docker
 
-
-### Docker Configuration
+To configure Docker:
 
 1. **Run Docker as Non-Root**: Follow the steps in [Manage Docker as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
 2. **Configure Proxy (if required)**:
@@ -72,11 +70,15 @@ The `task` section defines the settings for the Kapacitor task and User-Defined 
 
 | Key                     | Description                                                                                     | Example Value                          |
 |-------------------------|-------------------------------------------------------------------------------------------------|----------------------------------------|
-| `fetch_from_model_registry` | Boolean flag to enable fetching UDFs and models from the Model Registry.                     | `true` or `false`                      |
-| `version`               | Specifies the version of the task or model to use.                                             | `"1.0"`                                |
-| `tick_script`           | The name of the TICK script file used for data processing and analytics.                        | `"windturbine_anomaly_detector.tick"`  |
-| `task_name`             | The name of the Kapacitor task.                                                                | `"windturbine_anomaly_detector"`       |
+| `model_registry` | Configuration for the Model Registry microservice.       | See below for details.                      |
 | `udfs`                  | Configuration for the User-Defined Functions (UDFs).                                           | See below for details.                 |
+
+**Model Registry Configuration**:
+
+| Key                     | Description                                                                                     | Example Value                          |
+|-------------------------|-------------------------------------------------------------------------------------------------|----------------------------------------|
+| `enable` | Boolean flag to enable fetching UDFs and models from the Model Registry microservice.       | `true` or `false`                      |
+| `version`               | Specifies the version of the task or model to use.                                             | `"1.0"`                                |
 
 **UDFs Configuration**:
 
@@ -84,16 +86,17 @@ The `udfs` section specifies the details of the UDFs used in the task.
 
 | Key     | Description                                                                 | Example Value                          |
 |---------|-----------------------------------------------------------------------------|----------------------------------------|
-| `type`  | The type of UDF. Currently, only `python` is supported.                     | `"python"`                             |
 | `name`  | The name of the UDF script.                                                 | `"windturbine_anomaly_detector"`       |
 | `models`| The name of the model file used by the UDF.                                 | `"windturbine_anomaly_detector.pkl"`   |
 
+> **Note:** The maximum allowed size for `config.json` is 5 KB.
 ---
 
 **Alerts Configuration**:
 
 The `alerts` section defines the settings for alerting mechanisms, such as MQTT protocol.
-For OPC-UA configuration, please refer [Publishing OPC-UA alerts](./how-to-configure-alerts.md#publishing-opc-ua-alerts)
+For OPC-UA configuration, please refer [Publishing OPC-UA alerts](./how-to-configure-alerts.md#publishing-opc-ua-alerts).
+Please note to enable only one of the MQTT or OPC-UA alerts.
 
 **MQTT Configuration**:
 
@@ -107,7 +110,7 @@ The `mqtt` section specifies the MQTT broker details for sending alerts.
 
 
 #### **`config/`**:
-   - `kapacitor_devmode.conf` would be updated as per the above `config.json` at runtime for usage.
+   - `kapacitor_devmode.conf` would be updated as per the `config.json` at runtime for usage.
 
 #### **`udfs/`**:
    - Contains the python script to process the incoming data.
@@ -130,19 +133,7 @@ git clone https://github.com/open-edge-platform/edge-ai-suites.git
 cd edge-ai-suites/manufacturing-ai-suite/wind-turbine-anomaly-detection
 ```
 
-## Build Docker Images
-
-Navigate to the application directory and build the Docker images:
-
-> **NOTE**:
-> As a pre-requisite, please build `Time Series Analytics` microservice by referring the docs at <https://github.com/open-edge-platform/edge-ai-libraries/blob/main/microservices/time-series-analytics/docs/user-guide/get-started.md#build-docker-image> or use the pre-built
-docker image from the docker hub or internal container registry
-
-```bash
-make build # builds only data simulator (OPC-UA server and MQTT publisher) docker images
-```
-
-## Deploy with Docker Compose (Single Node)
+## Deploy with Docker Compose
 
 1. Update the following fields in `.env`:
    - `INFLUXDB_USERNAME`
@@ -153,7 +144,20 @@ make build # builds only data simulator (OPC-UA server and MQTT publisher) docke
    - `MR_MINIO_ACCESS_KEY`
    - `MR_MINIO_SECRET_KEY`
 
-2. Deploy the sample app, use only one of the options below:
+2. Deploy the sample app, use only one of the following options:
+
+> **NOTE**:
+>  - The below `make up_opcua_ingestion` or `make up_mqtt_ingestion` fails if the above required fields are not populated
+>    as per the rules called out in `.env` file.
+>  - The sample app is deployed by pulling the pre-built container images of the sample app 
+>    from the docker hub OR from the internal container registry (login to the docker registry from cli and configure `DOCKER_REGISTRY`
+>    env variable in `.env` file at `edge-ai-suites/manufacturing-ai-suite/wind-turbine-anomaly-detection`)
+>  - The `CONTINUOUS_SIMULATOR_INGESTION` variable in the `.env` file (for Docker Compose) and in `helm/values.yaml` (for Helm deployments) 
+>    is set to `true` by default, enabling continuous looping of simulator data. To ingest the simulator data only once (without looping), 
+>    set this variable to `false`.
+>  - If `CONTINUOUS_SIMULATOR_INGESTION` is set to `false`, you may see the `[inputs.opcua] status not OK for node` message in the `telegraf` 
+>    logs for OPC-UA ingestion after a single data ingestion loop. This message can be ignored.
+
    - **Using OPC-UA ingestion**:
      ```bash
      make up_opcua_ingestion
@@ -167,7 +171,7 @@ Use the following command to verify that all containers are active and error-fre
 
 > **Note:** The command `make status` may show errors in containers like ia-grafana when user have not logged in
 > for the first login OR due to session timeout. Just login again in Grafana and functionality wise if things are working, then
-> please ignore `user token not found` errors along with other minor errors which may show up in Grafana logs.
+> ignore `user token not found` errors along with other minor errors which may show up in Grafana logs.
 
 
 ```sh
@@ -178,13 +182,15 @@ make status
 
 1. Get into the InfluxDB* container:
 
-   > **Note**: Use `kubectl exec -it <influxdb-pod-name> -- /bin/bash` for the helm deployment
+   > **Note**: Use `kubectl exec -it <influxdb-pod-name> -n <namespace> -- /bin/bash` for the helm deployment
+   > where for <namespace> replace with namespace name where the application was deployed and
+   > for <influxdb-pod-name> replace with InfluxDB pod name.
 
    ``` bash
     docker exec -it ia-influxdb bash
    ```
 
-2. Run below commands to see the data in InfluxDB*:
+2. Run following commands to see the data in InfluxDB*:
 
     > **NOTE**:
     > Please ignore the error message `There was an error writing history file: open /.influx_history: read-only file system` happening in the InfluxDB shell.
@@ -201,7 +207,7 @@ make status
     select * from wind_turbine_anomaly_data
     ```
 
-2. To check the output in Grafana, follow the below steps.
+2. To check the output in Grafana:
 
     - Use link `http://<host_ip>:3000` to launch Grafana from browser (preferably, chrome browser)
       
@@ -222,13 +228,13 @@ make status
   
       ![Anomaly prediction in grid active power](./_images/anomaly_power_prediction.png)
 
-## Bringing down the sample app
+## Bring down the sample app
 
   ```sh
   make down
   ```
 
-## Troubleshooting
+## Check logs - troubleshooting
 
 - Check container logs to catch any failures:
 
@@ -238,7 +244,13 @@ make status
   docker logs -f <container_name> | grep -i error
   ```
 
-## Supporting Resources
+## Other Deployment options
 
-* [Overview](Overview.md)
-* [System Requirements](system-requirements.md)
+- [How to Deploy with Helm](./how-to-deploy-with-helm.md): Guide for deploying the sample application on a k8s cluster using Helm.
+- [How to Deploy with Edge Orchestrator](./how-to-deploy-with-edge-orchestrator.md): Guide for deploying the sample application using Edge Manageability Framework
+
+## Advanced setup
+
+- [How to build from source and deploy](./how-to-build-from-source.md): Guide to build from source and docker compose deployment
+- [How to configure OPC-UA/MQTT alerts](./how-to-configure-alerts.md): Guide for configuring the OPC-UA/MQTT alerts in the Time Series Analytics microservice
+- [How to configure custom UDF deployment package](./how-to-configure-custom-udf.md): Guide for deploying a customized UDF deployment package (udfs/models/tick scripts)
